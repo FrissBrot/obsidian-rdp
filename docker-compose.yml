@@ -1,0 +1,30 @@
+services:
+  obsidian-workspace:
+    container_name: obsidian-workspace
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        OBSIDIAN_VERSION: "${OBSIDIAN_VERSION}"
+    image: obsidian-workspace:${OBSIDIAN_VERSION}
+    networks:
+      - guacamole_guac_remote
+    environment:
+      APP_MODE: "${APP_MODE}"
+      USER_NAME: "user"
+      USER_PASSWORD: "${USER_PASSWORD}"
+    volumes:
+      - "./data/Obsidian Vault:/home/user/Obsidian Vault"
+      - "./data/config:/home/user/.config/obsidian"
+      - "./data/local-share:/home/user/.local/share/obsidian"
+      - "./data/cache:/home/user/.cache"
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+
+networks:
+  guacamole_guac_remote:
+    external: true

@@ -1,0 +1,18 @@
+#!/bin/sh
+
+USER_NAME="${USER_NAME:-user}"
+USER_HOME="/home/${USER_NAME}"
+
+export HOME="${USER_HOME}"
+export USER="${USER_NAME}"
+export LOGNAME="${USER_NAME}"
+export XDG_CONFIG_HOME="${USER_HOME}/.config"
+export XDG_DATA_HOME="${USER_HOME}/.local/share"
+export XDG_CACHE_HOME="${USER_HOME}/.cache"
+
+mkdir -p "${USER_HOME}/.cache"
+
+echo "==== .xsession gestartet: $(date) ====" >> "${USER_HOME}/.xsession.log"
+echo "DISPLAY=$DISPLAY" >> "${USER_HOME}/.xsession.log"
+
+exec openbox-session
