@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dbus \
     dbus-x11 \
     xterm \
-    sudo \
     wget \
     ca-certificates \
     xdg-utils \
@@ -84,7 +83,6 @@ RUN update-mime-database /usr/share/mime || true
 RUN fc-cache -f -v
 
 RUN useradd -m -s /bin/bash "${USER_NAME}" \
-    && usermod -aG sudo "${USER_NAME}" \
     && touch "/home/${USER_NAME}/.Xauthority" \
     && mkdir -p "/home/${USER_NAME}/Obsidian Vault" \
     && mkdir -p "/home/${USER_NAME}/.config/obsidian" \

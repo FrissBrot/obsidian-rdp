@@ -29,26 +29,34 @@ echo "APP_MODE=${APP_MODE:-exit}" >> "$LOG_FILE"
 
 APP_CMD='cd /opt/obsidian && dbus-launch ./obsidian --start-maximized --no-sandbox --disable-gpu --vault "'"${USER_HOME}"'/Obsidian Vault"'
 
+run_as_user() {
+    if [ "$(id -un)" = "${USER_NAME}" ]; then
+        sh -lc "$1"
+    else
+        su -s /bin/sh -c "$1" "${USER_NAME}"
+    fi
+}
+
 maximize_and_clean() {
     for i in 1 2 3 4 5 6 7 8 9 10; do
-        WINDOWS="$(sudo -u "${USER_NAME}" -H sh -lc 'wmctrl -l 2>/dev/null | awk "{print \$1}"')"
+        WINDOWS="$(run_as_user 'wmctrl -l 2>/dev/null | awk "{print \$1}"')"
         [ -n "$WINDOWS" ] && break
         sleep 1
     done
 
     echo "=== wmctrl -lx ===" >> "$LOG_FILE"
-    sudo -u "${USER_NAME}" -H sh -lc 'wmctrl -lx' >> "$LOG_FILE" 2>&1 || true
+    run_as_user 'wmctrl -lx' >> "$LOG_FILE" 2>&1 || true
 
-    for W in $(sudo -u "${USER_NAME}" -H sh -lc 'wmctrl -l 2>/dev/null | awk "{print \$1}"'); do
-        sudo -u "${USER_NAME}" -H sh -lc "wmctrl -i -r $W -b add,maximized_vert,maximized_horz" >> "$LOG_FILE" 2>&1 || true
-        sudo -u "${USER_NAME}" -H sh -lc "wmctrl -i -r $W -b add,above" >> "$LOG_FILE" 2>&1 || true
+    for W in $(run_as_user 'wmctrl -l 2>/dev/null | awk "{print \$1}"'); do
+        run_as_user "wmctrl -i -r $W -b add,maximized_vert,maximized_horz" >> "$LOG_FILE" 2>&1 || true
+        run_as_user "wmctrl -i -r $W -b add,above" >> "$LOG_FILE" 2>&1 || true
     done
 }
 
 start_once() {
     echo "Starte Obsidian: $(date)" >> "$LOG_FILE"
 
-    sudo -u "${USER_NAME}" -H sh -lc "$APP_CMD" >> "$LOG_FILE" 2>&1 &
+    run_as_user "$APP_CMD" >> "$LOG_FILE" 2>&1 &
     APP_PID=$!
 
     maximize_and_clean
