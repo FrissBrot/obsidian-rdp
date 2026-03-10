@@ -1,3 +1,4 @@
 #!/bin/sh
-xsetroot -solid black
-/usr/local/bin/start-obsidian.sh &
+if command -v xsetroot >/dev/null 2>&1; then
+    xsetroot -solid black
+fi

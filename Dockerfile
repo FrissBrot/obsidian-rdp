@@ -3,9 +3,12 @@ FROM debian:12
 ARG OBSIDIAN_VERSION=1.12.4
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    APP_MODE=exit \
+    APP_MODE=restart \
     USER_NAME=user \
     USER_PASSWORD=asdf \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LANGUAGE=C.UTF-8 \
     OBSIDIAN_VERSION=${OBSIDIAN_VERSION}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -62,6 +65,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-desktop-portal \
     gvfs \
     file \
+    x11-utils \
+    imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /etc/fonts/conf.d \
@@ -81,6 +86,8 @@ EOF
 RUN update-mime-database /usr/share/mime || true
 
 RUN fc-cache -f -v
+
+RUN printf 'LANG=C.UTF-8\nLC_ALL=C.UTF-8\nLANGUAGE=C.UTF-8\n' > /etc/default/locale
 
 RUN useradd -m -s /bin/bash "${USER_NAME}" \
     && touch "/home/${USER_NAME}/.Xauthority" \
@@ -119,12 +126,14 @@ RUN wget -O /tmp/Obsidian.AppImage \
 
 COPY skript/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY skript/start-obsidian.sh /usr/local/bin/start-obsidian.sh
+COPY skript/obsidian-session.sh /usr/local/bin/obsidian-session.sh
 COPY container-config/openbox-rc.xml /etc/skel/.config/openbox/rc.xml
 COPY skript/openbox-autostart /etc/skel/.config/openbox/autostart
 COPY skript/xsession /etc/skel/.xsession
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/start-obsidian.sh \
+    && chmod +x /usr/local/bin/obsidian-session.sh \
     && chmod +x /etc/skel/.config/openbox/autostart \
     && chmod +x /etc/skel/.xsession \
     && cp -a /etc/skel/. "/home/${USER_NAME}/" \

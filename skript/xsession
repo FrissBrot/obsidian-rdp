@@ -1,4 +1,5 @@
 #!/bin/sh
+set -eu
 
 USER_NAME="${USER_NAME:-user}"
 USER_HOME="/home/${USER_NAME}"
@@ -9,10 +10,24 @@ export LOGNAME="${USER_NAME}"
 export XDG_CONFIG_HOME="${USER_HOME}/.config"
 export XDG_DATA_HOME="${USER_HOME}/.local/share"
 export XDG_CACHE_HOME="${USER_HOME}/.cache"
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export LANGUAGE="${LANGUAGE:-C.UTF-8}"
+export APP_MODE="${APP_MODE:-restart}"
+export DISPLAY="${DISPLAY:-:10}"
 
 mkdir -p "${USER_HOME}/.cache"
 
 echo "==== .xsession gestartet: $(date) ====" >> "${USER_HOME}/.xsession.log"
 echo "DISPLAY=$DISPLAY" >> "${USER_HOME}/.xsession.log"
 
-exec openbox-session
+openbox-session &
+OPENBOX_PID=$!
+
+SESSION_RC=0
+/usr/local/bin/obsidian-session.sh || SESSION_RC=$?
+
+openbox --exit >> "${USER_HOME}/.xsession.log" 2>&1 || true
+wait "${OPENBOX_PID}" 2>/dev/null || true
+
+exit "${SESSION_RC}"

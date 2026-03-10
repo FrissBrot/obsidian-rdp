@@ -10,7 +10,7 @@ services:
     networks:
       - guacamole_guac_remote
     environment:
-      APP_MODE: "${APP_MODE}"
+      APP_MODE: "${APP_MODE:-restart}"
       USER_NAME: "user"
       USER_PASSWORD: "${USER_PASSWORD}"
     volumes:
@@ -23,6 +23,7 @@ services:
     group_add:
       - video
       - render
+    shm_size: "1g"
     restart: unless-stopped
 
 networks:

@@ -1,4 +1,5 @@
 #!/bin/sh
+set -eu
 
 USER_NAME="${USER_NAME:-user}"
 USER_HOME="/home/${USER_NAME}"
@@ -10,6 +11,9 @@ export DISPLAY="${DISPLAY:-:10}"
 export XDG_CONFIG_HOME="${USER_HOME}/.config"
 export XDG_DATA_HOME="${USER_HOME}/.local/share"
 export XDG_CACHE_HOME="${USER_HOME}/.cache"
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export LANGUAGE="${LANGUAGE:-C.UTF-8}"
 
 mkdir -p "${USER_HOME}/Obsidian Vault"
 mkdir -p "${USER_HOME}/.config/obsidian"
@@ -25,9 +29,8 @@ chown "${USER_NAME}:${USER_NAME}" "$LOG_FILE" "${USER_HOME}/.config/obsidian/obs
 echo "==== start-obsidian.sh gestartet: $(date) ====" >> "$LOG_FILE"
 echo "DISPLAY=$DISPLAY" >> "$LOG_FILE"
 echo "HOME=$HOME" >> "$LOG_FILE"
-echo "APP_MODE=${APP_MODE:-exit}" >> "$LOG_FILE"
 
-APP_CMD='cd /opt/obsidian && dbus-launch ./obsidian --start-maximized --no-sandbox --disable-gpu --vault "'"${USER_HOME}"'/Obsidian Vault"'
+APP_CMD='cd /opt/obsidian && dbus-launch ./obsidian --start-maximized --no-sandbox --disable-gpu --disable-dev-shm-usage --vault "'"${USER_HOME}"'/Obsidian Vault"'
 
 run_as_user() {
     if [ "$(id -un)" = "${USER_NAME}" ]; then
@@ -55,27 +58,27 @@ maximize_and_clean() {
 
 start_once() {
     echo "Starte Obsidian: $(date)" >> "$LOG_FILE"
+    START_TS="$(date +%s 2>/dev/null || echo 0)"
 
     run_as_user "$APP_CMD" >> "$LOG_FILE" 2>&1 &
     APP_PID=$!
 
     maximize_and_clean
 
-    wait $APP_PID
-    RC=$?
+    RC=0
+    wait $APP_PID || RC=$?
+    END_TS="$(date +%s 2>/dev/null || echo 0)"
+    RUNTIME=0
 
-    echo "Obsidian beendet mit Code $RC: $(date)" >> "$LOG_FILE"
+    if [ "$START_TS" -gt 0 ] && [ "$END_TS" -ge "$START_TS" ]; then
+        RUNTIME=$((END_TS - START_TS))
+    fi
+
+    echo "Obsidian beendet mit Code $RC nach ${RUNTIME}s: $(date)" >> "$LOG_FILE"
+
+    LAST_RUNTIME="$RUNTIME"
 
     return $RC
 }
 
-if [ "${APP_MODE:-exit}" = "restart" ]; then
-    while true; do
-        start_once
-        sleep 2
-    done
-else
-    start_once
-    echo "Beende Openbox-Session: $(date)" >> "$LOG_FILE"
-    openbox --exit >> "$LOG_FILE" 2>&1 || true
-fi
+start_once
