@@ -8,6 +8,8 @@ export HOME="${USER_HOME}"
 export USER="${USER_NAME}"
 export LOGNAME="${USER_NAME}"
 export DISPLAY="${DISPLAY:-:10}"
+export XDG_RUNTIME_DIR="/tmp/runtime-${USER_NAME}"
+export XAUTHORITY="${USER_HOME}/.Xauthority"
 export XDG_CONFIG_HOME="${USER_HOME}/.config"
 export XDG_DATA_HOME="${USER_HOME}/.local/share"
 export XDG_CACHE_HOME="${USER_HOME}/.cache"
@@ -20,17 +22,24 @@ mkdir -p "${USER_HOME}/.config/obsidian"
 mkdir -p "${USER_HOME}/.local/share/obsidian"
 mkdir -p "${USER_HOME}/.cache"
 mkdir -p "${USER_HOME}/.config/openbox"
+mkdir -p "${XDG_RUNTIME_DIR}"
+chmod 700 "${XDG_RUNTIME_DIR}"
+touch "${XAUTHORITY}"
+rm -f \
+    "${USER_HOME}/.config/obsidian/SingletonLock" \
+    "${USER_HOME}/.config/obsidian/SingletonSocket" \
+    "${USER_HOME}/.config/obsidian/SingletonCookie"
 
 LOG_FILE="${USER_HOME}/obsidian.log"
 touch "$LOG_FILE"
 touch "${USER_HOME}/.config/obsidian/obsidian.log"
-chown "${USER_NAME}:${USER_NAME}" "$LOG_FILE" "${USER_HOME}/.config/obsidian/obsidian.log" 2>/dev/null || true
+chown "${USER_NAME}:${USER_NAME}" "${XAUTHORITY}" "${XDG_RUNTIME_DIR}" "$LOG_FILE" "${USER_HOME}/.config/obsidian/obsidian.log" 2>/dev/null || true
 
 echo "==== start-obsidian.sh gestartet: $(date) ====" >> "$LOG_FILE"
 echo "DISPLAY=$DISPLAY" >> "$LOG_FILE"
 echo "HOME=$HOME" >> "$LOG_FILE"
 
-APP_CMD='cd /opt/obsidian && dbus-launch ./obsidian --start-maximized --no-sandbox --disable-gpu --disable-dev-shm-usage --vault "'"${USER_HOME}"'/Obsidian Vault"'
+APP_CMD='cd /opt/obsidian && dbus-launch ./obsidian --start-maximized --no-sandbox --disable-gpu --vault "'"${USER_HOME}"'/Obsidian Vault"'
 
 run_as_user() {
     if [ "$(id -un)" = "${USER_NAME}" ]; then

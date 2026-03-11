@@ -1,161 +1,81 @@
 # obsidian-rdp
 
-Run **Obsidian** inside a **Docker container** and access it remotely via **RDP**.
+Remote Obsidian workspace for RDP/Guacamole, packaged as a small Docker Compose stack.
 
-This project provides a lightweight Debian-based container that starts an **XRDP session with Openbox** and launches **Obsidian automatically**.
-It is useful if you want to run Obsidian on a server, NAS, or remote machine and access it from any device via Remote Desktop.
+## Features
 
----
+- Debian 12 based image with `xrdp`, `xorgxrdp`, `openbox`, and the Obsidian AppImage
+- Persistent vault, app config, local share, and cache via bind mounts under `data/`
+- Container-side hardening with disabled XRDP root login and Docker `no-new-privileges`
+- Guacamole-compatible network attachment via `guacamole_guac_remote`
+- Robust process supervision with `tini`, a listener-aware healthcheck, and an Obsidian session watchdog
+- Startup tuned for large vaults by avoiding recursive ownership fixes when mounts are already owned correctly
 
-# Features
+## Repository Layout
 
-* Obsidian runs inside a Docker container
-* Remote access via **RDP (port 3389)**
-* Lightweight **Openbox desktop environment**
-* Automatic Obsidian startup
-* Customizable user and password via environment variables
-* Persistent vault via Docker volumes
-* Works on servers, NAS systems, or headless machines
+- `Dockerfile`: image build, XRDP configuration, and Obsidian install
+- `docker-compose.yml`: service definition and runtime configuration
+- `skript/`: entrypoint and XRDP/Obsidian session scripts
+- `container-config/`: Openbox window manager configuration
+- `.env.example`: required environment variables template
 
----
+## Required Environment Variables
 
-# Architecture
+Copy `.env.example` to `.env` and adjust the values:
 
-The container includes:
-
-* **Debian 12**
-* **XRDP + XorgXRDP**
-* **Openbox window manager**
-* **Obsidian AppImage**
-* **DBus session**
-* minimal fonts and GUI libraries
-
-Startup flow:
-
-```
-docker-entrypoint
-        │
-        ▼
-xrdp-sesman + xrdp
-        │
-        ▼
-Openbox session
-        │
-        ▼
-start-obsidian.sh
-        │
-        ▼
-Obsidian launches automatically
+```env
+OBSIDIAN_VERSION=1.12.4
+USER_PASSWORD=change-me
+APP_MODE=restart
 ```
 
----
+`USER_PASSWORD` is required at runtime.
+`APP_MODE=restart` restarts Obsidian inside the existing XRDP session after crashes; `exit` closes the session when Obsidian exits.
+`OBSIDIAN_VERSION` is used at build time to download the AppImage.
 
-# Quick Start
+## Run
 
-## Build the image
-
-```
-docker build -t obsidian-rdp .
-```
-
-## Run the container
-
-```
-docker run -d \
-  -p 3389:3389 \
-  -e USER_NAME=user \
-  -e USER_PASSWORD=asdf \
-  -v ./vault:/home/user/Obsidian\ Vault \
-  --name obsidian \
-  obsidian-rdp
+```bash
+cp .env.example .env
+docker compose build
+docker compose up -d
 ```
 
----
+The service joins the external Docker network `guacamole_guac_remote`. Ensure that network exists before starting the stack.
 
-# Connect
+## Remote Access
 
-Connect using any **Remote Desktop client**:
+By default the service is only reachable on the Docker network for Guacamole.
+If you want direct RDP access on port `3389`, uncomment the `ports:` block in `docker-compose.yml`.
 
-```
-host: <server-ip>
-port: 3389
-username: user
-password: asdf
-```
+Login details:
 
-After login, the Openbox session will start and **Obsidian opens automatically**.
+- host: server IP or hostname
+- port: `3389`
+- username: `user`
+- password: value from `.env`
 
----
+## Hardening and Runtime Notes
 
-# Configuration
+- XRDP root logins and XRDP Fuse drive mounts are disabled.
+- Docker `no-new-privileges` is enabled in the Compose service.
+- The healthcheck verifies both XRDP processes and the local RDP listener on `127.0.0.1:3389`.
+- `/dev/shm` remains available to Electron, so Obsidian no longer needs `--disable-dev-shm-usage`.
+- Mounted directories are only fixed recursively when their top-level ownership is wrong, which reduces slow startups on large vaults.
 
-## Environment Variables
+## Data Handling
 
-| Variable           | Description                  | Default  |
-| ------------------ | ---------------------------- | -------- |
-| `USER_NAME`        | Linux user inside container  | `user`   |
-| `USER_PASSWORD`    | Login password               | `asdf`   |
-| `APP_MODE`         | `exit` or `restart`          | `exit`   |
-| `OBSIDIAN_VERSION` | Obsidian version to download | `1.12.4` |
+- `./data/Obsidian Vault` -> `/home/user/Obsidian Vault`
+- `./data/config` -> `/home/user/.config/obsidian`
+- `./data/local-share` -> `/home/user/.local/share/obsidian`
+- `./data/cache` -> `/home/user/.cache`
 
----
+## Logs
 
-# Persistent Vault
+- `/home/user/obsidian.log`
+- `/home/user/.xsession.log`
 
-To keep your notes persistent, mount a volume:
+## License
 
-```
--v ./vault:/home/user/Obsidian\ Vault
-```
-
-Your notes will be stored on the host in the `vault` directory.
-
----
-
-# Container Ports
-
-| Port | Purpose             |
-| ---- | ------------------- |
-| 3389 | XRDP remote desktop |
-
----
-
-# Logs
-
-Obsidian logs are written to:
-
-```
-/home/user/obsidian.log
-```
-
----
-
-# Security Notes
-
-This container exposes an **RDP server**.
-For production environments consider:
-
-* using a **VPN**
-* placing it behind a **reverse proxy**
-* restricting access via **firewall**
-
----
-
-# Updating Obsidian
-
-Change the build argument:
-
-```
-docker build --build-arg OBSIDIAN_VERSION=1.13.0 -t obsidian-rdp .
-```
-
----
-
-# License
-
-This project only packages Obsidian for containerized use.
-
-Obsidian is proprietary software.
-See:
-
-https://obsidian.md/license
+This project packages Obsidian for containerized remote use.
+Obsidian itself is proprietary software: https://obsidian.md/license

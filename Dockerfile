@@ -5,13 +5,14 @@ ARG OBSIDIAN_VERSION=1.12.4
 ENV DEBIAN_FRONTEND=noninteractive \
     APP_MODE=restart \
     USER_NAME=user \
-    USER_PASSWORD=asdf \
+    HOME=/home/user \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     LANGUAGE=C.UTF-8 \
     OBSIDIAN_VERSION=${OBSIDIAN_VERSION}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    tini \
     xrdp \
     xorgxrdp \
     openbox \
@@ -102,6 +103,10 @@ RUN sed -i 's/^LogLevel=.*/LogLevel=ERROR/' /etc/xrdp/xrdp.ini \
     && sed -i 's/^EnableSyslog=.*/EnableSyslog=false/' /etc/xrdp/xrdp.ini \
     && sed -i 's/^LogLevel=.*/LogLevel=ERROR/' /etc/xrdp/sesman.ini \
     && sed -i 's/^EnableSyslog=.*/EnableSyslog=false/' /etc/xrdp/sesman.ini \
+    && sed -i 's/^#\?AllowRootLogin=.*/AllowRootLogin=false/' /etc/xrdp/sesman.ini \
+    && sed -i 's/^#\?use_fastpath=.*/use_fastpath=both/' /etc/xrdp/xrdp.ini \
+    && if ! grep -q '^tcp_nodelay=' /etc/xrdp/xrdp.ini; then printf '\ntcp_nodelay=true\n' >> /etc/xrdp/xrdp.ini; fi \
+    && if ! grep -q '^tcp_keepalive=' /etc/xrdp/xrdp.ini; then printf 'tcp_keepalive=true\n' >> /etc/xrdp/xrdp.ini; fi \
     && grep -q '^\[Chansrv\]' /etc/xrdp/sesman.ini || printf '\n[Chansrv]\n' >> /etc/xrdp/sesman.ini \
     && if grep -q '^EnableFuseMount=' /etc/xrdp/sesman.ini; then \
            sed -i 's/^EnableFuseMount=.*/EnableFuseMount=false/' /etc/xrdp/sesman.ini; \
@@ -140,8 +145,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     && chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}"
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD pgrep -x xrdp >/dev/null && pgrep -f xrdp-sesman >/dev/null || exit 1
+  CMD /bin/sh -ec "pgrep -x xrdp >/dev/null && pgrep -x xrdp-sesman >/dev/null && bash -lc ': >/dev/tcp/127.0.0.1/3389'"
 
 EXPOSE 3389
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
