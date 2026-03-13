@@ -60,6 +60,7 @@ Login details:
 - XRDP root logins and XRDP Fuse drive mounts are disabled.
 - Docker `no-new-privileges` is enabled in the Compose service.
 - The healthcheck verifies both XRDP processes and the local RDP listener on `127.0.0.1:3389`.
+- A small background helper restores and re-maximizes Obsidian immediately if the window gets hidden or loses maximized state.
 - `/dev/shm` remains available to Electron, so Obsidian no longer needs `--disable-dev-shm-usage`.
 - Mounted directories are only fixed recursively when their top-level ownership is wrong, which reduces slow startups on large vaults.
 

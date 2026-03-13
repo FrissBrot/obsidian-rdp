@@ -139,12 +139,16 @@ while true; do
     START_TS="$(date +%s)"
     /usr/local/bin/start-obsidian.sh &
     APP_WRAPPER_PID=$!
+    /usr/local/bin/obsidian-window-guardian.sh &
+    GUARDIAN_PID=$!
     watchdog "${APP_WRAPPER_PID}" &
     WATCHDOG_PID=$!
 
     APP_RC=0
     wait "${APP_WRAPPER_PID}" || APP_RC=$?
 
+    kill "${GUARDIAN_PID}" 2>/dev/null || true
+    wait "${GUARDIAN_PID}" 2>/dev/null || true
     kill "${WATCHDOG_PID}" 2>/dev/null || true
     wait "${WATCHDOG_PID}" 2>/dev/null || true
 

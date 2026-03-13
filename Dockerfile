@@ -132,6 +132,8 @@ RUN wget -O /tmp/Obsidian.AppImage \
 COPY skript/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY skript/start-obsidian.sh /usr/local/bin/start-obsidian.sh
 COPY skript/obsidian-session.sh /usr/local/bin/obsidian-session.sh
+COPY skript/restore-obsidian-window.sh /usr/local/bin/restore-obsidian-window.sh
+COPY skript/obsidian-window-guardian.sh /usr/local/bin/obsidian-window-guardian.sh
 COPY container-config/openbox-rc.xml /etc/skel/.config/openbox/rc.xml
 COPY skript/openbox-autostart /etc/skel/.config/openbox/autostart
 COPY skript/xsession /etc/skel/.xsession
@@ -139,6 +141,8 @@ COPY skript/xsession /etc/skel/.xsession
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/start-obsidian.sh \
     && chmod +x /usr/local/bin/obsidian-session.sh \
+    && chmod +x /usr/local/bin/restore-obsidian-window.sh \
+    && chmod +x /usr/local/bin/obsidian-window-guardian.sh \
     && chmod +x /etc/skel/.config/openbox/autostart \
     && chmod +x /etc/skel/.xsession \
     && cp -a /etc/skel/. "/home/${USER_NAME}/" \
